@@ -56,6 +56,7 @@ BrightnessManager.prototype = {
 
    _init: function() {
        this._lastStatus = -1;
+       this._brightnessProxy = null;
        this._settings = (new Settings.Prefs());
        this._batteryBrightness = this._settings.BATTERY_BRIGHTNESS.get(DEFAULT_BRIGHTNESS_BATTERY);
        this._acBrightness = this._settings.AC_BRIGHTNESS.get(DEFAULT_BRIGHTNESS_AC); 
@@ -64,36 +65,69 @@ BrightnessManager.prototype = {
        
        this._uPowerSignal = this._uPowerProxy.connect('g-properties-changed', Lang.bind(this, this._onPowerChange));
 
-       this.lastStatus = this._uPowerProxy.State;
-       this._acBrightnessChangedSignal = this._settings.settings.connect('changed::ac-level', Lang.bind(this, this._onSettingsChange));
-       this._batteryBrightnessChangedSignal = this._settings.settings.connect('changed::battery-level', Lang.bind(this, this._onSettingsChange));
-       this._onPowerChange();
+       new this._screenProxyWrapper(Gio.DBus.session, BUS_NAME, OBJECT_PATH, Lang.bind(this, this.initBrightness));
+
    },
 
-   setLowBrightness: function(proxy) {
-       if ( Math.abs(parseInt(proxy.Brightness,10) - parseInt(this._acBrightness, 10)) > 1) {
-	   if ( ! isNaN(proxy.Brightness) ) {
-               this._acBrightness = parseInt(proxy.Brightness, 10);
+   initBrightness: function(proxy) {
+       this._brightnessProxy = proxy;
+       this.saveBrightness();
+       this._lastStatus = this._uPowerProxy.State;
+       this._acBrightnessChangedSignal = this._settings.settings.connect('changed::ac-brightness', Lang.bind(this, this.loadACBrightness));
+       this._batteryBrightnessChangedSignal = this._settings.settings.connect('changed::battery-brightness', Lang.bind(this, this.loadBatteryBrightness));
+    },
+
+   setBatteryBrightness: function() {
+       if ( Math.abs(parseInt(this._brightnessProxy.Brightness,10) - parseInt(this._acBrightness, 10)) > 1) {
+	   if ( ! isNaN(this._brightnessProxy.Brightness) ) {
+               this._acBrightness = parseInt(this._brightnessProxy.Brightness, 10);
 	       this._settings.AC_BRIGHTNESS.set(parseInt(this._acBrightness));
 	   }
        }
-       if ( isNaN(proxy.Brightness) || Math.abs(parseInt(proxy.Brightness,10) - parseInt(this._batteryBrightness,10)) > 1) {
-           proxy.Brightness=parseInt(this._batteryBrightness,10);
+       if ( isNaN(this._brightnessProxy.Brightness) || Math.abs(parseInt(this._brightnessProxy.Brightness,10) - parseInt(this._batteryBrightness,10)) > 1) {
+           this._brightnessProxy.Brightness=parseInt(this._batteryBrightness,10);
        }
    },
 
 
-   setHighBrightness: function(proxy) {
-       if ( Math.abs(parseInt(proxy.Brightness,10) - parseInt(this._batteryBrightness, 10)) > 1) {
-	   if ( ! isNaN(proxy.Brightness) ) {
-               this._batteryBrightness = parseInt(proxy.Brightness, 10);
+   setACBrightness: function() {
+       if ( Math.abs(parseInt(this._brightnessProxy.Brightness,10) - parseInt(this._batteryBrightness, 10)) > 1) {
+	   if ( ! isNaN(this._brightnessProxy.Brightness) ) {
+               this._batteryBrightness = parseInt(this._brightnessProxy.Brightness, 10);
 	       this._settings.BATTERY_BRIGHTNESS.set(parseInt(this._batteryBrightness));
 	   }
        }
-       if ( isNaN(proxy.Brightness) || Math.abs(parseInt(proxy.Brightness,10) - parseInt(this._acBrightness,10)) > 1) {
-           proxy.Brightness=parseInt(this._acBrightness,10);
+       if ( isNaN(this._brightnessProxy.Brightness) || Math.abs(parseInt(this._brightnessProxy.Brightness,10) - parseInt(this._acBrightness,10)) > 1) {
+           this._brightnessProxy.Brightness=parseInt(this._acBrightness,10);
        }
    },
+
+   saveBrightness: function() {
+       if ( this._uPowerProxy.State == UPower.DeviceState.DISCHARGING) {
+	   this._settings.BATTERY_BRIGHTNESS.set(parseInt(this._brightnessProxy.Brightness,10));
+       } else {
+	   this._settings.AC_BRIGHTNESS.set(parseInt(this._brightnessProxy.Brightness,10));
+       }
+   },
+
+   loadACBrightness: function() {
+       if ( Math.abs(parseInt(this._brightnessProxy.Brightness,10) - parseInt(this._settings.AC_BRIGHTNESS.get(),10)) > 1 ) {
+           if ( this._uPowerProxy.State != UPower.DeviceState.DISCHARGING) {
+               this._brightnessProxy.Brightness = parseInt(this._settings.AC_BRIGHTNESS.get());
+	   }
+           this._acBrightness = parseInt(this._settings.AC_BRIGHTNESS.get());
+       }
+   },
+
+   loadBatteryBrightness: function() {
+       if ( Math.abs(parseInt(this._brightnessProxy.Brightness,10) - parseInt(this._settings.BATTERY_BRIGHTNESS.get(),10)) > 1 ) {
+           if ( this._uPowerProxy.State == UPower.DeviceState.DISCHARGING) {
+               this._brightnessProxy.Brightness = parseInt(this._settings.BATTERY_BRIGHTNESS.get());
+	   }
+           this._batteryBrightness = parseInt(this._settings.BATTERY_BRIGHTNESS.get());
+       }
+   },
+
 
    _onSettingsChange: function() {
        var changed = false;
@@ -115,18 +149,19 @@ BrightnessManager.prototype = {
    _onPowerChange: function() {
        if ( this._uPowerProxy.State == UPower.DeviceState.DISCHARGING) {
 	   if ( this._lastStatus != UPower.DeviceState.DISCHARGING ) {
-               new this._screenProxyWrapper(Gio.DBus.session, BUS_NAME, OBJECT_PATH, Lang.bind(this, this.setLowBrightness));
+	       this.setBatteryBrightness();
 	       this._lastStatus = UPower.DeviceState.DISCHARGING;
 	   }
        } else {
-	   if ( this._lastStatus == UPower.DeviceState.DISCHARGING ) {
-               new this._screenProxyWrapper(Gio.DBus.session, BUS_NAME, OBJECT_PATH, Lang.bind(this, this.setHighBrightness));
+	   if ( this._lastStatus == UPower.DeviceState.DISCHARGING || this._lastStatus == -1 ) {
+	       this.setACBrightness();
 	       this._lastStatus = UPower.DeviceState.CHARGING;
 	   }
        }
    },
 
    destroy: function() {
+       this.saveBrightness();
        this._uPowerProxy.disconnect(this._upowerSignal);
        this._settings.settings.disconnect(this._batteryBrightnessChangedSignal);
        this._settings.settings.disconnect(this._acBrightnessChangedSignal);
