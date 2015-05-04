@@ -29,6 +29,9 @@ const Main = imports.ui.main;
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Settings = Extension.imports.settings;
 
+const DEFAULT_BRIGHTNESS_AC = 100;
+const DEFAULT_BRIGHTNESS_BATTERY = 50;
+
 
 const BUS_NAME = 'org.gnome.SettingsDaemon';
 const OBJECT_PATH = '/org/gnome/SettingsDaemon/Power';
@@ -54,48 +57,79 @@ BrightnessManager.prototype = {
    _init: function() {
        this._lastStatus = -1;
        this._settings = (new Settings.Prefs());
-       this._dimLevel = this._settings.DIMLEVEL.get();
-       this._brightLevel = 100;
+       this._batteryBrightness = this._settings.BATTERY_BRIGHTNESS.get(DEFAULT_BRIGHTNESS_BATTERY);
+       this._acBrightness = this._settings.AC_BRIGHTNESS.get(DEFAULT_BRIGHTNESS_AC); 
        this._screenProxyWrapper = Gio.DBusProxy.makeProxyWrapper(ScreenIface);
        this._uPowerProxy = Main.panel.statusArea["aggregateMenu"]._power._proxy;
        
        this._uPowerSignal = this._uPowerProxy.connect('g-properties-changed', Lang.bind(this, this._onPowerChange));
 
-       this._settingsChangedSignal = this._settings.settings.connect('changed::dim-level', Lang.bind(this, this._onSettingsChange));
+       this.lastStatus = this._uPowerProxy.State;
+       this._acBrightnessChangedSignal = this._settings.settings.connect('changed::ac-level', Lang.bind(this, this._onSettingsChange));
+       this._batteryBrightnessChangedSignal = this._settings.settings.connect('changed::battery-level', Lang.bind(this, this._onSettingsChange));
        this._onPowerChange();
    },
 
    setLowBrightness: function(proxy) {
-	   global.log(this._dimLevel);
-       proxy.Brightness=parseInt(this._dimLevel);
+       if ( Math.abs(parseInt(proxy.Brightness,10) - parseInt(this._acBrightness, 10)) > 1) {
+	   if ( ! isNaN(proxy.Brightness) ) {
+               this._acBrightness = parseInt(proxy.Brightness, 10);
+	       this._settings.AC_BRIGHTNESS.set(parseInt(this._acBrightness));
+	   }
+       }
+       if ( isNaN(proxy.Brightness) || Math.abs(parseInt(proxy.Brightness,10) - parseInt(this._batteryBrightness,10)) > 1) {
+           proxy.Brightness=parseInt(this._batteryBrightness,10);
+       }
    },
 
 
    setHighBrightness: function(proxy) {
-       proxy.Brightness=parseInt(this._brightLevel);
+       if ( Math.abs(parseInt(proxy.Brightness,10) - parseInt(this._batteryBrightness, 10)) > 1) {
+	   if ( ! isNaN(proxy.Brightness) ) {
+               this._batteryBrightness = parseInt(proxy.Brightness, 10);
+	       this._settings.BATTERY_BRIGHTNESS.set(parseInt(this._batteryBrightness));
+	   }
+       }
+       if ( isNaN(proxy.Brightness) || Math.abs(parseInt(proxy.Brightness,10) - parseInt(this._acBrightness,10)) > 1) {
+           proxy.Brightness=parseInt(this._acBrightness,10);
+       }
    },
 
    _onSettingsChange: function() {
-       this._dimLevel = this._settings.DIMLEVEL.get();
-       this._onPowerChange();
-       global.log('settings have changed');
+       var changed = false;
+       if ( Math.abs(parseInt(this._batteryBrightness,10) - parseInt(this._settings.BATTERY_BRIGHTNESS.get(),10)) > 1 ) {
+           this._batteryBrightness = parseInt(this._settings.BATTERY_BRIGHTNESS.get(),10);
+	   changed = true;
+       }
+       
+       if ( Math.abs(parseInt(this._acBrightness,10) - parseInt(this._settings.AC_BRIGHTNESS.get(),10)) > 1 ) {
+           this._acBrightness = parseInt(this._settings.AC_BRIGHTNESS.get(),10);
+	   changed = true;
+       }
+       if ( changed ) {
+           this._onPowerChange();
+       }
+       global.log('[dim-on-battery] settings have changed');
    },
 
    _onPowerChange: function() {
        if ( this._uPowerProxy.State == UPower.DeviceState.DISCHARGING) {
 	   if ( this._lastStatus != UPower.DeviceState.DISCHARGING ) {
                new this._screenProxyWrapper(Gio.DBus.session, BUS_NAME, OBJECT_PATH, Lang.bind(this, this.setLowBrightness));
-	       this._lastStatus == UPower.DeviceState.DISCHARGING;
-	   } else {
+	       this._lastStatus = UPower.DeviceState.DISCHARGING;
 	   }
        } else {
+	   if ( this._lastStatus == UPower.DeviceState.DISCHARGING ) {
                new this._screenProxyWrapper(Gio.DBus.session, BUS_NAME, OBJECT_PATH, Lang.bind(this, this.setHighBrightness));
+	       this._lastStatus = UPower.DeviceState.CHARGING;
+	   }
        }
    },
 
    destroy: function() {
        this._uPowerProxy.disconnect(this._upowerSignal);
-       this._settings.settings.disconnect(this._settingsChangedSignal);
+       this._settings.settings.disconnect(this._batteryBrightnessChangedSignal);
+       this._settings.settings.disconnect(this._acBrightnessChangedSignal);
    }
 }
 
@@ -104,12 +138,12 @@ function init() {
 }
 
 function enable() {
-    global.log('Dim On Battery Power enabled');
+    global.log('[dim-on-battery] enabled');
     brightnessManager = new BrightnessManager();
 }
 
 function disable() {
-    global.log('Dim On Battery Power disabled');
+    global.log('[dim-on-battery] disabled');
     brightnessManager.destroy();
 }
 

@@ -1,9 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
 	<schema id="org.gnome.shell.extensions.dim-on-battery" path="/org/gnome/shell/extensions/dim-on-battery/">
-		<key type="d" name="dim-level">
+		<key type="d" name="battery-brightness">
 			<default>50</default>
 			<summary>Screen brightness on battery power</summary>
+			<description/>
+		</key>
+		<key type="d" name="ac-brightness">
+			<default>100</default>
+			<summary>Screen brightness on ac power</summary>
 			<description/>
 		</key>
 	</schema>

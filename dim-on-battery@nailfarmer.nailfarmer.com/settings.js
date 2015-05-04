@@ -33,8 +33,15 @@ function get_local_gsettings(schema_path) {
 function Prefs() {
 	var self = this;
 	var settings = this.settings = get_local_gsettings(SCHEMA_PATH);
-	this.DIMLEVEL = {
-		key: 'dim-level',
+	this.BATTERY_BRIGHTNESS = {
+		key: 'battery-brightness',
+		get: function() { return settings.get_double(this.key); },
+		set: function(v) { settings.set_double(this.key, v); },
+		changed: function(cb) { return settings.connect('changed::' + this.key, cb); },
+		disconnect: function() { return settings.disconnect.apply(settings, arguments); },
+	};
+	this.AC_BRIGHTNESS = {
+		key: 'ac-brightness',
 		get: function() { return settings.get_double(this.key); },
 		set: function(v) { settings.set_double(this.key, v); },
 		changed: function(cb) { return settings.connect('changed::' + this.key, cb); },
