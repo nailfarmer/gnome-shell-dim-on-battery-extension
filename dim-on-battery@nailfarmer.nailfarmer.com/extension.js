@@ -103,6 +103,8 @@ BrightnessManager.prototype = {
    },
 
    saveBrightness: function() {
+       if (parseInt(this._brightnessProxy.Brightness,10) < 1 ) return;
+
        if ( this._uPowerProxy.State == UPower.DeviceState.DISCHARGING) {
 	   this._settings.BATTERY_BRIGHTNESS.set(parseInt(this._brightnessProxy.Brightness,10));
        } else {
