@@ -82,6 +82,12 @@ BrightnessManager.prototype = {
        this._lastStatus = this._uPowerProxy.State;
        this._acBrightnessChangedSignal = this._settings.settings.connect('changed::ac-brightness', Lang.bind(this, this.loadACBrightness));
        this._batteryBrightnessChangedSignal = this._settings.settings.connect('changed::battery-brightness', Lang.bind(this, this.loadBatteryBrightness));
+
+       if ( this._uPowerProxy.State == UPower.DeviceState.DISCHARGING) {
+           this.loadBatteryBrightness();
+       } else {
+           this.loadACBrightness();
+       }
     },
 
    setBatteryBrightness: function() {
@@ -90,7 +96,7 @@ BrightnessManager.prototype = {
 
        // Save the ac brightness levels if there's been a significant change
        // and our current value is valid
-       if ( currentBrightness > 1 && 
+       if ( currentBrightness > 1 && ! isNaN(currentBrightness) && 
             Math.abs(currentBrightness - this._acBrightness) > 1 ) {
            this._acBrightness = currentBrightness;
            this._settings.AC_BRIGHTNESS.set(this._acBrightness);
@@ -98,7 +104,7 @@ BrightnessManager.prototype = {
 
        // Set the brightness to battery levels if there's been a 
        // significant change, or if the current value is in doubt
-       if ( currentBrightness < 1 || 
+       if ( currentBrightness < 1 || isNan(currentBrightness) ||
             Math.abs(currentBrightness - this._batteryBrightness) > 1 ) {
            this._brightnessProxy.Brightness = this._batteryBrightness;
        }
@@ -111,16 +117,16 @@ BrightnessManager.prototype = {
 
        // Save the battery brightness levels if there's been a significant
        // change and our current value is valid
-       if ( currentBrightness > 1 && 
+       if ( currentBrightness > 1 && ! isNaN(currentBrightness) && 
             Math.abs(currentBrightness - this._batteryBrightness) > 1 ) {
            this._batteryBrightness = currentBrightness;
-	   this._settings.BATTERY_BRIGHTNESS.set(currentBrightness);
+       this._settings.BATTERY_BRIGHTNESS.set(currentBrightness);
        }
 
        // Set the brightness to ac levels if there's been a significant change
        // or if our current brightness value is in doubt
-       if ( currentBrightness < 1 || 
-	    Math.abs(currentBrightness - this._acBrightness) > 1) {
+       if ( currentBrightness < 1 || isNaN(currentBrightness) || 
+            Math.abs(currentBrightness - this._acBrightness) > 1) {
            this._brightnessProxy.Brightness = this._acBrightness;
        }
 
@@ -131,21 +137,32 @@ BrightnessManager.prototype = {
     *
     */
    saveBrightness: function() {
+       if ( null == this._brightnessProxy ) {
+           return;
+       }
        var currentBrightness = parseInt(this._brightnessProxy.Brightness,10);
-       if ( currentBrightness < 1 ) return;
+       if ( currentBrightness < 1 || isNaN(currentBrightness) ) {
+           return;
+       }
 
        if ( this._uPowerProxy.State == UPower.DeviceState.DISCHARGING) {
-	   this._settings.BATTERY_BRIGHTNESS.set(currentBrightness);
+           this._settings.BATTERY_BRIGHTNESS.set(currentBrightness);
        } else {
-	   this._settings.AC_BRIGHTNESS.set(currentBrightness);
+           this._settings.AC_BRIGHTNESS.set(currentBrightness);
        }
    },
 
    fixBadDconfSettings: function() {
-       if ( this._settings.AC_BRIGHTNESS.get() < 1 ) {
+       if ( this._settings.AC_BRIGHTNESS.get() < 1 || isNaN(this._settings.AC_BRIGHTNESS.get()) ) {
+           if ( this._acBrightness < 1 ) {
+               this._acBrightness = DEFAULT_BRIGHTNESS_AC;
+           }
            this._settings.AC_BRIGHTNESS.set(this._acBrightness);
        }
-       if ( this._settings.BATTERY_BRIGHTNESS.get() < 1 ) {
+       if ( this._settings.BATTERY_BRIGHTNESS.get() < 1 || isNaN(this._settings.BATTERY_BRIGHTNESS.get()) ) {
+           if ( this._acBrightness < 1 ) {
+               this._batteryBrightness = DEFAULT_BRIGHTNESS_BATTERY;
+           }
            this._settings.BATTERY_BRIGHTNESS.set(this._batteryBrightness);
        }
    },
@@ -159,7 +176,7 @@ BrightnessManager.prototype = {
        var currentBrightness = parseInt(this._brightnessProxy.Brightness,10);
        var dconfBrightness = this._settings.AC_BRIGHTNESS.get();
 
-       if ( dconfBrightness > 1 ) {
+       if ( dconfBrightness > 1 && ! isNaN(dconfBrightness) ) {
            this._acBrightness = dconfBrightness;
        } 
 
@@ -178,7 +195,7 @@ BrightnessManager.prototype = {
    loadBatteryBrightness: function() {
        var currentBrightness = parseInt(this._brightnessProxy.Brightness,10);
        var dconfBrightness = this._settings.BATTERY_BRIGHTNESS.get();
-       if ( dconfBrightness > 1 ) {
+       if ( dconfBrightness > 1 && ! isNaN(dconfBrightness) ) {
            this._batteryBrightness = dconfBrightness;
        } 
 
@@ -196,15 +213,15 @@ BrightnessManager.prototype = {
    _onPowerChange: function() {
        // look for a change from charging to discharging, or vice versa
        if ( this._uPowerProxy.State == UPower.DeviceState.DISCHARGING) {
-	   if ( this._lastStatus != UPower.DeviceState.DISCHARGING ) {
-	       this.setBatteryBrightness();
-	       this._lastStatus = UPower.DeviceState.DISCHARGING;
-	   }
+           if ( this._lastStatus != UPower.DeviceState.DISCHARGING ) {
+               this.setBatteryBrightness();
+               this._lastStatus = UPower.DeviceState.DISCHARGING;
+           }
        } else {
-	   if ( this._lastStatus == UPower.DeviceState.DISCHARGING || this._lastStatus == -1 ) {
-	       this.setACBrightness();
-	       this._lastStatus = UPower.DeviceState.CHARGING;
-	   }
+           if ( this._lastStatus == UPower.DeviceState.DISCHARGING || this._lastStatus == -1 ) {
+               this.setACBrightness();
+               this._lastStatus = UPower.DeviceState.CHARGING;
+           }
        }
    },
 
