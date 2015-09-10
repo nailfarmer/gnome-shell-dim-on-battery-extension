@@ -93,6 +93,8 @@ BrightnessManager.prototype = {
     },
 
    setBatteryBrightness: function() {
+       if ( null == this._brightnessProxy ) return;
+
        // this will cast to 0 if DBUS times out
        var currentBrightness = parseInt(this._brightnessProxy.Brightness, 10);
 
@@ -117,6 +119,8 @@ BrightnessManager.prototype = {
 
 
    setACBrightness: function() {
+       if ( null == this._brightnessProxy ) return;
+   
        // this will cast to 0 if DBUS times out
        var currentBrightness = parseInt(this._brightnessProxy.Brightness, 10);
 
