@@ -34,6 +34,7 @@ const VERBOSE_LOGS=false;
 const DEFAULT_BRIGHTNESS_AC = 100;
 const DEFAULT_BRIGHTNESS_BATTERY = 50;
 
+const BRIGHTNESS_THRESHOLD = 3;
 
 const BUS_NAME = 'org.gnome.SettingsDaemon';
 const OBJECT_PATH = '/org/gnome/SettingsDaemon/Power';
@@ -104,6 +105,7 @@ BrightnessManager.prototype = {
             Math.abs(currentBrightness - this._acBrightness) > 1 ) {
        
            write_log('[dim-on-battery] dc brightness is valid, saving settings in dconf');
+           write_log('[dim-on-battery] new ac brightness value is ' + this._acBrightness);
            this._acBrightness = currentBrightness;
            this._settings.AC_BRIGHTNESS.set(this._acBrightness);
        }
@@ -129,6 +131,7 @@ BrightnessManager.prototype = {
        if ( currentBrightness > 1 && ! isNaN(currentBrightness) && 
             Math.abs(currentBrightness - this._batteryBrightness) > 1 ) {
            write_log('[dim-on-battery] ac brightness is valid, saving settings in dconf');
+           write_log('[dim-on-battery] new dc brightness value is ' + currentBrightness);
            this._batteryBrightness = currentBrightness;
            this._settings.BATTERY_BRIGHTNESS.set(currentBrightness);
        }
@@ -151,16 +154,30 @@ BrightnessManager.prototype = {
        if ( null == this._brightnessProxy ) {
            return;
        }
-       var currentBrightness = parseInt(this._brightnessProxy.Brightness,10);
+       var currentBrightness = parseInt(Math.round(this._brightnessProxy.Brightness,10));
        if ( currentBrightness < 1 || isNaN(currentBrightness) ) {
            write_log('[dim-on-battery] not saving bad brightness value to dconf');
            return;
        }
 
+       // Before saving brightness, we need to make sure that the change is
+       // large enough to warrant saving.  Because brightness values can
+       // fluctuate slightly when resuming, not checking for this can lead
+       // to brightness values being unnecessarily degraded over time.
        if ( this._uPowerProxy.State == UPower.DeviceState.DISCHARGING) {
-           this._settings.BATTERY_BRIGHTNESS.set(currentBrightness);
+           var diff = Math.abs(this._settings.BATTERY_BRIGHTNESS.get() - currentBrightness);
+           write_log('[dim-on-battery] brightness diff is ' + diff);
+           if ( diff > BRIGHTNESS_THRESHOLD ) {
+               this._settings.BATTERY_BRIGHTNESS.set(currentBrightness);
+               write_log('[dim-on-battery] saving brightness: ' + currentBrightness);
+           }
        } else {
-           this._settings.AC_BRIGHTNESS.set(currentBrightness);
+           var diff = Math.abs(this._settings.AC_BRIGHTNESS.get() - currentBrightness);
+           write_log('[dim-on-battery] brightness diff is ' + diff);
+           if ( diff > BRIGHTNESS_THRESHOLD ) {
+               this._settings.AC_BRIGHTNESS.set(currentBrightness);
+               write_log('[dim-on-battery] saving brightness: ' + currentBrightness);
+           }
        }
    },
 
