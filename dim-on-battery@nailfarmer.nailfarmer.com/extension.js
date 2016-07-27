@@ -81,11 +81,9 @@ BrightnessManager.prototype = {
 
    initBrightness: function(proxy) {
        this._brightnessProxy = proxy;
-       this.saveBrightness();
        this._lastStatus = this._uPowerProxy.State;
        this._acBrightnessChangedSignal = this._settings.settings.connect('changed::ac-brightness', Lang.bind(this, this.loadACBrightness));
        this._batteryBrightnessChangedSignal = this._settings.settings.connect('changed::battery-brightness', Lang.bind(this, this.loadBatteryBrightness));
-
        if ( this._uPowerProxy.State == UPower.DeviceState.DISCHARGING) {
            this.loadBatteryBrightness();
        } else {
