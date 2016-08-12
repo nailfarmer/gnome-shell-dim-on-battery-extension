@@ -103,7 +103,6 @@ BrightnessManager.prototype = {
             Math.abs(currentBrightness - this._acBrightness) > 1 ) {
        
            write_log('[dim-on-battery] dc brightness is valid, saving settings in dconf');
-           write_log('[dim-on-battery] new ac brightness value is ' + this._acBrightness);
            this._acBrightness = currentBrightness;
            this._settings.AC_BRIGHTNESS.set(this._acBrightness);
        }
@@ -181,17 +180,17 @@ BrightnessManager.prototype = {
 
    fixBadDconfSettings: function() {
        if ( this._settings.AC_BRIGHTNESS.get() < 1 || isNaN(this._settings.AC_BRIGHTNESS.get()) ) {
-           write_log('[dim-on-battery] ');
+           write_log('[dim-on-battery] unusual dconf ac brightness settings found');
            if ( this._acBrightness < 1 ) {
-               write_log('[dim-on-battery] ');
+               write_log('[dim-on-battery] ac brightness is less than 1!');
                this._acBrightness = DEFAULT_BRIGHTNESS_AC;
            }
            this._settings.AC_BRIGHTNESS.set(this._acBrightness);
        }
        if ( this._settings.BATTERY_BRIGHTNESS.get() < 1 || isNaN(this._settings.BATTERY_BRIGHTNESS.get()) ) {
-           write_log('[dim-on-battery] ');
+           write_log('[dim-on-battery] unusual dconf dc brightness settings found');
            if ( this._acBrightness < 1 ) {
-               write_log('[dim-on-battery] ac brightness loaded from dconf');
+               write_log('[dim-on-battery] dc brightness is less than 1!');
                this._batteryBrightness = DEFAULT_BRIGHTNESS_BATTERY;
            }
            this._settings.BATTERY_BRIGHTNESS.set(this._batteryBrightness);
