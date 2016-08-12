@@ -95,7 +95,7 @@ BrightnessManager.prototype = {
        if ( null == this._brightnessProxy ) return;
 
        // this will cast to 0 if DBUS times out
-       var currentBrightness = parseInt(this._brightnessProxy.Brightness, 10);
+       var currentBrightness = parseInt(Math.round(this._brightnessProxy.Brightness), 10);
 
        // Save the ac brightness levels if there's been a significant change
        // and our current value is valid
@@ -121,7 +121,7 @@ BrightnessManager.prototype = {
        if ( null == this._brightnessProxy ) return;
    
        // this will cast to 0 if DBUS times out
-       var currentBrightness = parseInt(this._brightnessProxy.Brightness, 10);
+       var currentBrightness = parseInt(Math.round(this._brightnessProxy.Brightness), 10);
 
        // Save the battery brightness levels if there's been a significant
        // change and our current value is valid
@@ -203,7 +203,7 @@ BrightnessManager.prototype = {
     *
     */
    loadACBrightness: function() {
-       var currentBrightness = parseInt(this._brightnessProxy.Brightness,10);
+       var currentBrightness = parseInt(Math.round(this._brightnessProxy.Brightness),10);
        var dconfBrightness = this._settings.AC_BRIGHTNESS.get();
 
        if ( dconfBrightness > 1 && ! isNaN(dconfBrightness) ) {
@@ -225,7 +225,7 @@ BrightnessManager.prototype = {
     *
     */
    loadBatteryBrightness: function() {
-       var currentBrightness = parseInt(this._brightnessProxy.Brightness,10);
+       var currentBrightness = parseInt(Math.round(this._brightnessProxy.Brightness),10);
        var dconfBrightness = this._settings.BATTERY_BRIGHTNESS.get();
        if ( dconfBrightness > 1 && ! isNaN(dconfBrightness) ) {
            write_log('[dim-on-battery] battery brightness loaded from dconf');
