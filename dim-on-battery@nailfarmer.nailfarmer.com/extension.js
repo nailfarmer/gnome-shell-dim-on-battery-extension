@@ -261,7 +261,7 @@ BrightnessManager.prototype = {
 
    destroy: function() {
        this.saveBrightness();
-       this._uPowerProxy.disconnect(this._upowerSignal);
+       this._uPowerProxy.disconnect(this._uPowerSignal);
        this._settings.settings.disconnect(this._batteryBrightnessChangedSignal);
        this._settings.settings.disconnect(this._acBrightnessChangedSignal);
    }
