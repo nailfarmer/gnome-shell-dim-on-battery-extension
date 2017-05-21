@@ -29,14 +29,14 @@ const Main = imports.ui.main;
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Settings = Extension.imports.settings;
 
-const VERBOSE_LOGS=false;
+const VERBOSE_LOGS=true; // turned on loging for debuging reasons 
 
 const DEFAULT_BRIGHTNESS_AC = 100;
 const DEFAULT_BRIGHTNESS_BATTERY = 50;
 
 const BRIGHTNESS_THRESHOLD = 3;
 
-const BUS_NAME = 'org.gnome.SettingsDaemon';
+const BUS_NAME = 'org.gnome.SettingsDaemon.Power'; // adding .Power as that seems the bus now
 const OBJECT_PATH = '/org/gnome/SettingsDaemon/Power';
 
 const ScreenIface = '<node>\
@@ -44,7 +44,7 @@ const ScreenIface = '<node>\
     <property type="i" name="Brightness" access="readwrite">\
     </property>\
   </interface>\
-</node>';
+</node>'; 
 
 
 let brightnessManager = null;
