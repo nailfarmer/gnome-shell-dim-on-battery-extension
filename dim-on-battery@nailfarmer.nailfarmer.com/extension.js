@@ -29,7 +29,7 @@ const Main = imports.ui.main;
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Settings = Extension.imports.settings;
 
-const VERBOSE_LOGS=false;
+const VERBOSE_LOGS=true; // turned on loging for debuging reasons 
 
 const DEFAULT_BRIGHTNESS_AC = 100;
 const DEFAULT_BRIGHTNESS_BATTERY = 50;
