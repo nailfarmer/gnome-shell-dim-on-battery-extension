@@ -39,7 +39,7 @@ const BRIGHTNESS_THRESHOLD = 3;
 const BUS_NAME = 'org.gnome.SettingsDaemon.Power'; // adding .Power as that seems the bus now
 const OBJECT_PATH = '/org/gnome/SettingsDaemon/Power';
 
-const ScreenIface = '<node>\ 
+const ScreenIface = '<node>\
   <interface name="org.gnome.SettingsDaemon.Power.Screen">\
     <property type="i" name="Brightness" access="readwrite">\
     </property>\
