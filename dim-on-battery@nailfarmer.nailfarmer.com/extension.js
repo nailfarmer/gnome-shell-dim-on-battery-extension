@@ -36,7 +36,14 @@ const DEFAULT_BRIGHTNESS_BATTERY = 50;
 
 const BRIGHTNESS_THRESHOLD = 3;
 
-const BUS_NAME = 'org.gnome.SettingsDaemon.Power'; // adding .Power as that seems the bus now
+const Config = imports.misc.config;
+
+
+let BUS_NAME = 'org.gnome.SettingsDaemon';
+if (parseFloat(Config.PACKAGE_VERSION) > 3.22) {
+    let BUS_NAME = 'org.gnome.SettingsDaemon.Power';
+}
+
 const OBJECT_PATH = '/org/gnome/SettingsDaemon/Power';
 
 const ScreenIface = '<node>\
