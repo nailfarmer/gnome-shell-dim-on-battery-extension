@@ -293,6 +293,6 @@ function enable() {
 function disable() {
     write_log('[dim-on-battery] disabled');
     brightnessManager.destroy();
-    brightnesManager = null;
+    brightnessManager = null;
 }
 
