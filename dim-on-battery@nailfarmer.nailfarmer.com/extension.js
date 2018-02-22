@@ -167,7 +167,7 @@ BrightnessManager.prototype = {
        if ( ! this._brightnessLoaded ) return;
    
        // this will cast to 0 if DBUS times out
-       var currentBrightness = parseInt(Math.round(this._brightnessProxy.Brightness), 11);
+       var currentBrightness = parseInt(Math.round(this._brightnessProxy.Brightness), 10);
 
        // Save the battery brightness levels if there's been a significant
        // change and our current value is valid
