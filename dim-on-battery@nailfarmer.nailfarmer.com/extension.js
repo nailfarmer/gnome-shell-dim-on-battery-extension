@@ -22,6 +22,7 @@
 
 const Lang = imports.lang;
 const Signals = imports.signals;
+const Mainloop = imports.mainloop;
 const Gio = imports.gi.Gio;
 const UPower = imports.ui.status.power.UPower;
 const St = imports.gi.St;
@@ -67,6 +68,7 @@ BrightnessManager.prototype = {
 
    _init: function() {
        this._lastStatus = -1;
+       this._brightnessLoaded = false;
        this._brightnessProxy = null;
        this._settings = (new Settings.Prefs());
 
@@ -80,27 +82,63 @@ BrightnessManager.prototype = {
 
        this._screenProxyWrapper = Gio.DBusProxy.makeProxyWrapper(ScreenIface);
        this._uPowerProxy = Main.panel.statusArea["aggregateMenu"]._power._proxy;
-       
+
        this._uPowerSignal = this._uPowerProxy.connect('g-properties-changed', Lang.bind(this, this._onPowerChange));
 
-       new this._screenProxyWrapper(Gio.DBus.session, BUS_NAME, OBJECT_PATH, Lang.bind(this, this.initBrightness));
+       new this._screenProxyWrapper(Gio.DBus.session, BUS_NAME, OBJECT_PATH, Lang.bind(this, this.initBrightnessProxy));
 
+       Mainloop.timeout_add_seconds(1, Lang.bind(this, this.initBrightness) );
    },
 
-   initBrightness: function(proxy) {
+   initBrightnessProxy: function(proxy) {
        this._brightnessProxy = proxy;
+       if ( ! this._brightnessLoaded )  this.initBrightness(); 
+   },
+
+   /* 
+    * We can't initialize brightness until both dbus proxies have been 
+    * initialized themselves and have valid properties available. Ideally, this
+    * should be true in initBrightnessProxy, but in practice, neither the
+    * brightness nor upower properties are always immediately available. Since
+    * I can't find any relevent dbus signals to listen for, that means we have to
+    * poll until they are accessible.
+    * 
+    */
+   initBrightness: function() {
+       if ( this._brightnessLoaded ) return false;
+       if ( null == this._brightnessProxy  ) {
+           write_log('[dim-on-battery] warning, brightness proxy not yet loaded, proxy value is ' + this._brightnessProxy);
+           return true;
+       } 
+       if ( null == this._brightnessProxy.Brightness || isNaN(this._brightnessProxy.Brightness) ) {
+           write_log('[dim-on-battery] warning, brightness state not yet loaded, proxy value is ' + this._brightnessProxy.Brightness);
+           return true;
+       }
+       if ( null == this._uPowerProxy.State ) {
+           write_log('[dim-on-battery] warning, uPowerProxy state not yet loaded, proxy value is ' + this._uPowerProxy);
+           write_log('[dim-on-battery] power device type is ' + this._uPowerProxy.Type);
+           return true;
+       }
+
+       write_log('[dim-on-battery] at init, brightness proxy is' + this._brightnessProxy);
+       write_log('[dim-on-battery] at init, current brightness level is ' + this._brightnessProxy.Brightness);
+
        this._lastStatus = this._uPowerProxy.State;
        this._acBrightnessChangedSignal = this._settings.settings.connect('changed::ac-brightness', Lang.bind(this, this.loadACBrightness));
        this._batteryBrightnessChangedSignal = this._settings.settings.connect('changed::battery-brightness', Lang.bind(this, this.loadBatteryBrightness));
-       if ( this._uPowerProxy.State == UPower.DeviceState.DISCHARGING) {
+
+       if ( this._uPowerProxy.State == UPower.DeviceState.DISCHARGING ) {
            this.loadBatteryBrightness();
        } else {
            this.loadACBrightness();
        }
+       this._brightnessLoaded = true;
+       return false;
     },
 
    setBatteryBrightness: function() {
-       if ( null == this._brightnessProxy ) return;
+       if ( ! this._brightnessLoaded ) return;
+       write_log('[dim-on-battery] setting battery brightness');
 
        // this will cast to 0 if DBUS times out
        var currentBrightness = parseInt(Math.round(this._brightnessProxy.Brightness), 10);
@@ -119,17 +157,17 @@ BrightnessManager.prototype = {
        // significant change, or if the current value is in doubt
        if ( currentBrightness < 1 || isNaN(currentBrightness) ||
             Math.abs(currentBrightness - this._batteryBrightness) > 1 ) {
-           write_log('[dim-on-battery] dc brightness has changed, updating');
+           write_log('[dim-on-battery] dc brightness has changed, updating to ' + this._batteryBrightness);
            this._brightnessProxy.Brightness = this._batteryBrightness;
        }
    },
 
 
    setACBrightness: function() {
-       if ( null == this._brightnessProxy ) return;
+       if ( ! this._brightnessLoaded ) return;
    
        // this will cast to 0 if DBUS times out
-       var currentBrightness = parseInt(Math.round(this._brightnessProxy.Brightness), 10);
+       var currentBrightness = parseInt(Math.round(this._brightnessProxy.Brightness), 11);
 
        // Save the battery brightness levels if there's been a significant
        // change and our current value is valid
@@ -145,7 +183,7 @@ BrightnessManager.prototype = {
        // or if our current brightness value is in doubt
        if ( currentBrightness < 1 || isNaN(currentBrightness) || 
             Math.abs(currentBrightness - this._acBrightness) > 1) {
-           write_log('[dim-on-battery] setting current brightness to dconf settings');
+           write_log('[dim-on-battery] setting current brightness to dconf settings of ' + this._acBrightness);
            this._brightnessProxy.Brightness = this._acBrightness;
        }
 
@@ -153,12 +191,9 @@ BrightnessManager.prototype = {
 
    /*
     * Save the current brightness in dconf.
-    *
     */
    saveBrightness: function() {
-       if ( null == this._brightnessProxy ) {
-           return;
-       }
+       if ( ! this._brightnessLoaded ) return;
        var currentBrightness = parseInt(Math.round(this._brightnessProxy.Brightness,10));
        if ( currentBrightness < 1 || isNaN(currentBrightness) ) {
            write_log('[dim-on-battery] not saving bad brightness value to dconf');
@@ -186,6 +221,9 @@ BrightnessManager.prototype = {
        }
    },
 
+   /* Sometimes Dconf settings are corrupt.  Check for these and overwrite with
+    * the current settings (if valid) or with the default settings.
+    */
    fixBadDconfSettings: function() {
        if ( this._settings.AC_BRIGHTNESS.get() < 1 || isNaN(this._settings.AC_BRIGHTNESS.get()) ) {
            write_log('[dim-on-battery] unusual dconf ac brightness settings found');
@@ -220,7 +258,9 @@ BrightnessManager.prototype = {
        } 
 
        if ( this._uPowerProxy.State != UPower.DeviceState.DISCHARGING) {
-           write_log('[dim-on-battery] device is not discharging, updating brightness');
+           write_log('[dim-on-battery] device proxy is ' + this._uPowerProxy);
+           write_log('[dim-on-battery] device state is ' + this._uPowerProxy.State);
+           write_log('[dim-on-battery] device is not discharging, updating brightness to ' + this._acBrightness);
            this._brightnessProxy.Brightness = this._acBrightness;
        }
 
@@ -236,12 +276,12 @@ BrightnessManager.prototype = {
        var currentBrightness = parseInt(Math.round(this._brightnessProxy.Brightness),10);
        var dconfBrightness = this._settings.BATTERY_BRIGHTNESS.get();
        if ( dconfBrightness > 1 && ! isNaN(dconfBrightness) ) {
-           write_log('[dim-on-battery] battery brightness loaded from dconf');
+           write_log('[dim-on-battery] battery brightness loaded from dconf ' + dconfBrightness);
            this._batteryBrightness = dconfBrightness;
        } 
 
        if ( this._uPowerProxy.State == UPower.DeviceState.DISCHARGING) {
-           write_log('[dim-on-battery] device is discharging, updating brightness');
+           write_log('[dim-on-battery] device is discharging, updating brightness to ' + this._batteryBrightness);
            this._brightnessProxy.Brightness = this._batteryBrightness;
        }
 
@@ -254,6 +294,8 @@ BrightnessManager.prototype = {
     */
    _onPowerChange: function() {
        // look for a change from charging to discharging, or vice versa
+       write_log('[dim-on-battery] power changed');
+       if ( ! this._brightnessLoaded )  this.initBrightness();
        if ( this._uPowerProxy.State == UPower.DeviceState.DISCHARGING) {
            if ( this._lastStatus != UPower.DeviceState.DISCHARGING ) {
                this.setBatteryBrightness();
