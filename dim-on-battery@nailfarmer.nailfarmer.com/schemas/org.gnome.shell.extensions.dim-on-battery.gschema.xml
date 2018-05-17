@@ -11,5 +11,20 @@
 			<summary>Screen brightness on ac power</summary>
 			<description/>
 		</key>
+		<key type="b" name="legacy-mode">
+			<default>true</default>                                         
+			<summary>Use legacy behaviour of remembering previous brightness level</summary>
+			<description/>
+		</key>
+			<key type="i" name="previous-state">
+			<default>-1</default>                                         
+			<summary>Saved brightness state from last run</summary>
+			<description/>
+		</key>
+		<key type="d" name="percentage-dim">
+			<default>50</default>
+			<summary>Percentage to dim screen on battery power</summary>
+			<description/>
+		</key>
 	</schema>
 </schemalist>
