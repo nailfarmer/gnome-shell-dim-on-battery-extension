@@ -67,6 +67,33 @@ function buildPrefsWidget() {
 			}
 		});
 
+		let legacy_toggle_container = new Gtk.Box({
+			orientation: Gtk.Orientation.HORIZONTAL,
+			spacing: 20
+		});
+
+		let legacy_toggle_label = new Gtk.Label({
+			label: "Use legacy dim-by-value behavior",
+			use_markup: true,
+		});
+
+		var legacy_toggle_pref = config.LEGACY_MODE;
+		let legacy_toggle_value = new Gtk.Switch({active: legacy_toggle_pref.get()});
+	
+		legacy_toggle_value.connect('state-set', function(w, s, udata) {
+			var oldval = legacy_toggle_pref.get();
+			if (s != legacy_toggle_pref.get()) {
+				legacy_toggle_pref.set(s);
+                if ( s === true ) {
+                    dim_by_value_frame.set_sensitive(true);
+                    dim_by_percent_frame.set_sensitive(false);
+                } else {
+                    dim_by_value_frame.set_sensitive(false);
+                    dim_by_percent_frame.set_sensitive(true);
+                }
+			}
+		});
+
 
 		let ac_container = new Gtk.Box({
 			orientation: Gtk.Orientation.HORIZONTAL,
@@ -102,6 +129,19 @@ function buildPrefsWidget() {
 		grid.attach_next_to(ac_label, battery_label, Gtk.PositionType.BOTTOM, 1, 1);
 		grid.attach_next_to(ac_value, ac_label, Gtk.PositionType.RIGHT, 1, 1);
 		*/
+
+        if ( legacy_toggle_pref.get() === true ) {
+            dim_by_value_frame.set_sensitive(true);
+            dim_by_percent_frame.set_sensitive(false);
+        } else {
+            dim_by_value_frame.set_sensitive(false);
+            dim_by_percent_frame.set_sensitive(true);
+        }
+
+        legacy_toggle_container.add(legacy_toggle_value);
+        legacy_toggle_container.add(legacy_toggle_label);
+        mainBox.add(legacy_toggle_container);
+
 
 		battery_container.add(battery_label);
 		battery_container.pack_end(battery_value, false, false, 0);
