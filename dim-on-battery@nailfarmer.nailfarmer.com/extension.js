@@ -34,6 +34,9 @@ const VERBOSE_LOGS=false;
 
 const DEFAULT_BRIGHTNESS_AC = 100;
 const DEFAULT_BRIGHTNESS_BATTERY = 50;
+const DEFAULT_USE_LEGACY_MODE = true;
+const DEFAULT_PERCENT_DIM = 50;
+const DEFAULT_PREVIOUS_STATE = -1;
 
 const BRIGHTNESS_THRESHOLD = 3;
 
@@ -276,12 +279,12 @@ BrightnessManager.prototype = {
        var currentBrightness = parseInt(Math.round(this._brightnessProxy.Brightness),10);
        var dconfBrightness = this._settings.BATTERY_BRIGHTNESS.get();
        if ( dconfBrightness > 1 && ! isNaN(dconfBrightness) ) {
-           write_log('[dim-on-battery] battery brightness loaded from dconf ' + dconfBrightness);
+           write_log('battery brightness loaded from dconf ' + dconfBrightness);
            this._batteryBrightness = dconfBrightness;
        } 
 
        if ( this._uPowerProxy.State == UPower.DeviceState.DISCHARGING) {
-           write_log('[dim-on-battery] device is discharging, updating brightness to ' + this._batteryBrightness);
+           write_log('device is discharging, updating brightness to ' + this._batteryBrightness);
            this._brightnessProxy.Brightness = this._batteryBrightness;
        }
 
