@@ -135,13 +135,19 @@ BrightnessManager.prototype = {
        this._legacyModeChangedSignal = this._settings.settings.connect('changed::legacy-mode', Lang.bind(this, this.toggleLegacyMode));
        this._percentageDimChangedSignal = this._settings.settings.connect('changed::percentage-dim', Lang.bind(this, this.percentDimChanged));
 
-       if ( this._uPowerProxy.State == UPower.DeviceState.DISCHARGING ) {
+       if ( this.isDischargeState(this._uPowerProxy.State) ) {
            this.loadBatteryBrightness();
        } else {
            this.loadACBrightness();
        }
        this._brightnessLoaded = true;
        return false;
+    },
+
+    isDischargeState: function(state) {
+        if ( state == UPower.DeviceState.DISCHARGING ) return true;
+        if ( state == UPower.DeviceState.PENDING_DISCHARGE ) return true;
+        return false;
     },
 
    setBatteryBrightness: function() {
@@ -304,8 +310,8 @@ BrightnessManager.prototype = {
        // look for a change from charging to discharging, or vice versa
        write_log('power changed');
        if ( ! this._brightnessLoaded )  this.initBrightness();
-       if ( this._uPowerProxy.State == UPower.DeviceState.DISCHARGING) {
-           if ( this._lastStatus != UPower.DeviceState.DISCHARGING ) {
+       if ( this.isDischargeState(this._uPowerProxy.State) )  {
+           if ( ! this.isDischargeState(this._lastStatus) ) {
                this.setBatteryBrightness();
                this._lastStatus = UPower.DeviceState.DISCHARGING;
            }
