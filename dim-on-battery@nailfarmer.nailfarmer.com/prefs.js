@@ -1,5 +1,4 @@
 const Gtk = imports.gi.Gtk;
-
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Settings = Extension.imports.settings;
 
@@ -8,13 +7,33 @@ function init() {
 
 function buildPrefsWidget() {
 	let config = new Settings.Prefs();
-	let frame = new Gtk.Box({
+	let mainBox = new Gtk.Box({
 		orientation: Gtk.Orientation.VERTICAL,
 		border_width: 10,
 	        spacing: 10
 	});
 
 	(function() {
+
+        let dim_by_value_frame = new Gtk.Frame();
+		let dim_by_value_label = new Gtk.Label({
+			label: "Dim by value settings",
+			use_markup: true,
+		});
+        let dim_by_value_box = new Gtk.Box({
+            orientation: Gtk.Orientation.VERTICAL,
+            border_width: 10
+        });
+
+        let dim_by_percent_frame = new Gtk.Frame();
+		let dim_by_percent_label = new Gtk.Label({
+			label: "Dim by percent settings",
+			use_markup: true,
+		});
+        let dim_by_percent_box = new Gtk.Box({
+            orientation: Gtk.Orientation.VERTICAL,
+            border_width: 10
+        });
 
 		let battery_container = new Gtk.Box({
 			orientation: Gtk.Orientation.HORIZONTAL,
@@ -86,13 +105,17 @@ function buildPrefsWidget() {
 
 		battery_container.add(battery_label);
 		battery_container.pack_end(battery_value, false, false, 0);
-		frame.add(battery_container);
+		dim_by_value_box.add(battery_container);
 
 		ac_container.add(ac_label);
 		ac_container.pack_end(ac_value, false, false, 0);
-		frame.add(ac_container);
+		dim_by_value_box.add(ac_container);
+
+        	dim_by_value_frame.set_label("Dim by value settings");
+        	dim_by_value_frame.add(dim_by_value_box);
+        	mainBox.add(dim_by_value_frame);
 	})();
 
-	frame.show_all();
-	return frame;
+	mainBox.show_all();
+	return mainBox;
 }
