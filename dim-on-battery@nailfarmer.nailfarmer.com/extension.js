@@ -82,6 +82,9 @@ BrightnessManager.prototype = {
 
        this._batteryBrightness = this._settings.BATTERY_BRIGHTNESS.get(DEFAULT_BRIGHTNESS_BATTERY);
        this._acBrightness = this._settings.AC_BRIGHTNESS.get(DEFAULT_BRIGHTNESS_AC); 
+       this._percentageDim = this._settings.PERCENTAGE_DIM.get(DEFAULT_PERCENT_DIM);
+       this._previousState = this._settings.PREVIOUS_STATE.get(DEFAULT_PREVIOUS_STATE);
+       this._legacyMode = this._settings.LEGACY_MODE.get(DEFAULT_USE_LEGACY_MODE);
 
        this._screenProxyWrapper = Gio.DBusProxy.makeProxyWrapper(ScreenIface);
        this._uPowerProxy = Main.panel.statusArea["aggregateMenu"]._power._proxy;
@@ -129,6 +132,8 @@ BrightnessManager.prototype = {
        this._lastStatus = this._uPowerProxy.State;
        this._acBrightnessChangedSignal = this._settings.settings.connect('changed::ac-brightness', Lang.bind(this, this.loadACBrightness));
        this._batteryBrightnessChangedSignal = this._settings.settings.connect('changed::battery-brightness', Lang.bind(this, this.loadBatteryBrightness));
+       this._legacyModeChangedSignal = this._settings.settings.connect('changed::legacy-mode', Lang.bind(this, this.toggleLegacyMode));
+       this._percentageDimChangedSignal = this._settings.settings.connect('changed::percentage-dim', Lang.bind(this, this.percentDimChanged));
 
        if ( this._uPowerProxy.State == UPower.DeviceState.DISCHARGING ) {
            this.loadBatteryBrightness();
@@ -317,6 +322,8 @@ BrightnessManager.prototype = {
        this._uPowerProxy.disconnect(this._uPowerSignal);
        this._settings.settings.disconnect(this._batteryBrightnessChangedSignal);
        this._settings.settings.disconnect(this._acBrightnessChangedSignal);
+       this._settings.settings.disconnect(this._legacyModeChangedSignal);
+       this._settings.settings.disconnect(this._percentageDimChangedSignal);
    }
 }
 
