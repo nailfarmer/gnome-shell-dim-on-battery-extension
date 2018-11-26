@@ -150,6 +150,19 @@ BrightnessManager.prototype = {
         return false;
     },
 
+    roundValue: function(val) {
+        return parseInt(Math.round(val), 10);
+    },
+
+    toggleLegacyMode: function() {
+        this._legacyMode = this._settings.LEGACY_MODE.get();
+    },
+
+    percentDimChanged: function() {
+        this._percentageDim = this._settings.PERCENTAGE_DIM.get();
+        this._onPowerChange();
+    },
+
    setBatteryBrightness: function() {
        if ( ! this._brightnessLoaded ) return;
        write_log('setting battery brightness');
