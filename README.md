@@ -3,7 +3,7 @@ An extension for gnome shell that will change the screen brightness when the mac
 
 In the default dim-by-value mode, the screen will be dimmed to 50% brightness when running on battery.  When the brightness is changed, the new brightness level will be remembered whenever you're on battery power.
 
-In the new dim-by-percent mode, the screen will be dimmed to 50% of the ac brightness level.  If your brightness is 75% when you are plugged in, once you are on battery power, your brightness will now be 38%.  This is useful in environments where the light level changes frequently.
+In the new dim-by-percent mode, the screen will be dimmed to 50% of the plugged-in brightness level.  If the brightness level is at 75% when your machine is plugged in, once your machine is on battery power, the brightness level wll be changed to 38%.  This is useful in environments where the light level changes frequently.
 
 ## To install from git
     git clone git://github.com/nailfarmer/gnome-shell-dim-on-battery-extension.git
