@@ -1,8 +1,8 @@
 {
-    "shell-version": ["3.14", "3.16", "3.18", "3.20", "3.22", "3.24", "3.26"],
+    "shell-version": ["3.14", "3.16", "3.18", "3.20", "3.22", "3.24", "3.26", "3.28", "3.30"],
     "uuid": "dim-on-battery@nailfarmer.nailfarmer.com",
     "name": "Dim On Battery Power",
     "url": "https://gitlab.com/nailfarmer/gnome-shell-dim-on-battery-extension",
     "description": "Automatically dims the screen when the machine is running on battery power.",
-    "version": 18
+    "version": 19
 }
