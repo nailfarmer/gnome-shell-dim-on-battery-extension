@@ -121,6 +121,33 @@ function buildPrefsWidget() {
 			}
 		});
 
+		let percent_dim_container = new Gtk.Box({
+			orientation: Gtk.Orientation.HORIZONTAL,
+			spacing: 20
+		});
+
+		let percent_dim_label = new Gtk.Label({
+			label: "Percent to dim display on battery power",
+			use_markup: true,
+		});
+		let percent_dim_adjustment = new Gtk.Adjustment({
+			lower: 0,
+			upper: 100,
+			step_increment: 1 
+		});
+
+		var percent_dim_pref = config.PERCENTAGE_DIM;
+		let percent_dim_value = Gtk.SpinButton.new_with_range(0,100,1);
+		percent_dim_value.set_value(percent_dim_pref.get());
+
+		percent_dim_value.connect('value-changed', function(sw) {
+			var oldval = percent_dim_pref.get();
+			var newval = sw.get_value();
+			if (newval != percent_dim_pref.get()) {
+				percent_dim_pref.set(newval);
+			}
+		});
+ 
 
 		/*
 		 * grid.add(battery_label);
@@ -152,6 +179,15 @@ function buildPrefsWidget() {
 		dim_by_value_frame.set_label("Dim by value settings");
 		dim_by_value_frame.add(dim_by_value_box);
 		mainBox.add(dim_by_value_frame);
+
+		percent_dim_container.add(percent_dim_label);
+		percent_dim_container.pack_end(percent_dim_value, false, false, 0);
+		dim_by_percent_box.add(percent_dim_container);
+
+		dim_by_percent_frame.set_label("Dim by percent settings");
+		dim_by_percent_frame.add(dim_by_percent_box);
+		mainBox.add(dim_by_percent_frame);
+
 	})();
 
 	mainBox.show_all();
