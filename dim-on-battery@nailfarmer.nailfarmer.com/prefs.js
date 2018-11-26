@@ -1,7 +1,7 @@
 const Gtk = imports.gi.Gtk;
 
-let Extension = imports.misc.extensionUtils.getCurrentExtension();
-let Settings = Extension.imports.settings;
+const Extension = imports.misc.extensionUtils.getCurrentExtension();
+const Settings = Extension.imports.settings;
 
 function init() {
 }
