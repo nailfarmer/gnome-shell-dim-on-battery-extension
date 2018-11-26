@@ -75,9 +75,6 @@ BrightnessManager.prototype = {
        this._brightnessProxy = null;
        this._settings = (new Settings.Prefs());
 
-       this._batteryBrightness = DEFAULT_BRIGHTNESS_BATTERY;
-       this._acBrightness = DEFAULT_BRIGHTNESS_AC;
-       
        this.fixBadDconfSettings();
 
        this._batteryBrightness = this._settings.BATTERY_BRIGHTNESS.get(DEFAULT_BRIGHTNESS_BATTERY);
@@ -129,11 +126,13 @@ BrightnessManager.prototype = {
        write_log('at init, brightness proxy is' + this._brightnessProxy);
        write_log('at init, current brightness level is ' + this._brightnessProxy.Brightness);
 
-       this._lastStatus = this._uPowerProxy.State;
        this._acBrightnessChangedSignal = this._settings.settings.connect('changed::ac-brightness', Lang.bind(this, this.loadACBrightness));
        this._batteryBrightnessChangedSignal = this._settings.settings.connect('changed::battery-brightness', Lang.bind(this, this.loadBatteryBrightness));
        this._legacyModeChangedSignal = this._settings.settings.connect('changed::legacy-mode', Lang.bind(this, this.toggleLegacyMode));
        this._percentageDimChangedSignal = this._settings.settings.connect('changed::percentage-dim', Lang.bind(this, this.percentDimChanged));
+
+       if ( this._legacyMode ) {
+           this._lastStatus = this._uPowerProxy.State;
 
        if ( this.isDischargeState(this._uPowerProxy.State) ) {
            this.loadBatteryBrightness();
@@ -141,6 +140,27 @@ BrightnessManager.prototype = {
            this.loadACBrightness();
        }
        this._brightnessLoaded = true;
+       } else {
+           this._brightnessLoaded = true;
+           this._lastStatus = this._settings.PREVIOUS_STATE.get();
+           var consistent = !(this.isDischargeState(this._lastStatus) ^ this.isDischargeState(this._uPowerProxy.State));
+
+           // on first run, dim if we are discharging
+           if ( this._lastStatus == -1 && this.isDischargeState(this._uPowerProxy.State) ) {
+               this.setBatteryBrightness();
+
+           // if states are consistent, do nothing, otherwise if discharging, dim and if charging, boost
+           } else if ( ! consistent ) {
+               if ( this.isDischargeState(this._uPowerProxy.State) ) {
+                   this.setPercentBatteryBrightness();
+                   this._lastStatus = UPower.DeviceState.DISCHARGING;
+               } else {
+                   this.setPercentACBrightness();
+                   this._lastStatus = UPower.DeviceState.CHARGING;
+               }
+           }
+
+       }
        return false;
     },
 
@@ -164,6 +184,11 @@ BrightnessManager.prototype = {
     },
 
    setBatteryBrightness: function() {
+       if ( this._legacyMode ) this.setLegacyBatteryBrightness();
+       else this.setPercentBatteryBrightness();
+   },
+
+   setLegacyBatteryBrightness: function() {
        if ( ! this._brightnessLoaded ) return;
        write_log('setting battery brightness');
 
@@ -189,10 +214,34 @@ BrightnessManager.prototype = {
        }
    },
 
+   setPercentBatteryBrightness: function() {
+       if ( ! this._brightnessLoaded ) return;
+       var currentBrightness = this.roundValue(this._brightnessProxy.Brightness);
+       var newBrightness = this.roundValue(currentBrightness*((100.0-this._percentageDim)/100.0));
+       newBrightness = Math.min(newBrightness, 100);
+       newBrightness = Math.max(newBrightness, 0);
+
+       if ( currentBrightness < 1 ) {
+           write_log('bad brightness value');
+           return;
+       }
+       this._brightnessProxy.Brightness = newBrightness;
+       var actualBrightness = this._brightnessProxy.Brightness;
+       this._lastStatus = UPower.DeviceState.DISCHARGING;
+       this._settings.PREVIOUS_STATE.set(UPower.DeviceState.DISCHARGING);
+       write_log('brightness from ' + currentBrightness + ' to ' + newBrightness);
+       write_log('actual brightness is ' + actualBrightness);
+       write_log('saved state should be ' + this._uPowerProxy.State);
+   },
+
 
    setACBrightness: function() {
-       if ( ! this._brightnessLoaded ) return;
+       if ( this._legacyMode ) this.setLegacyACBrightness();
+       else this.setPercentACBrightness();
+   },
    
+   setLegacyACBrightness: function() {
+       if ( ! this._brightnessLoaded ) return;
        // this will cast to 0 if DBUS times out
        var currentBrightness = parseInt(Math.round(this._brightnessProxy.Brightness), 10);
 
@@ -214,6 +263,28 @@ BrightnessManager.prototype = {
            this._brightnessProxy.Brightness = this._acBrightness;
        }
 
+   },
+
+   setPercentACBrightness: function() {
+       if ( ! this._brightnessLoaded ) return;
+       var currentBrightness = this.roundValue(this._brightnessProxy.Brightness)+1;
+       var newBrightness = this.roundValue(currentBrightness*(100.0/(100.0-this._percentageDim)));
+       newBrightness = Math.min(newBrightness, 100);
+       newBrightness = Math.max(newBrightness, 0);
+
+       if ( currentBrightness < 1 ) {
+           write_log('bad brightness value');
+           return;
+       }
+       this._brightnessProxy.Brightness = newBrightness;
+       var actualBrightness = this._brightnessProxy.Brightness;
+       this._lastStatus = UPower.DeviceState.CHARGING;
+       this._settings.PREVIOUS_STATE.set(UPower.DeviceState.CHARGING);
+
+       write_log('dim percentage:  ' + this._percentageDim);
+       write_log('brightness from ' + currentBrightness + ' to ' + newBrightness);
+       write_log('actual brightness is ' + actualBrightness);
+       write_log('saved state should be ' + this._uPowerProxy.State);
    },
 
    /*
@@ -329,7 +400,7 @@ BrightnessManager.prototype = {
                this._lastStatus = UPower.DeviceState.DISCHARGING;
            }
        } else {
-           if ( this._lastStatus == UPower.DeviceState.DISCHARGING || this._lastStatus == -1 ) {
+           if ( this.isDischargeState(this._lastStatus) || this._lastStatus == -1 ) {
                this.setACBrightness();
                this._lastStatus = UPower.DeviceState.CHARGING;
            }
