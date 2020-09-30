@@ -7,5 +7,5 @@ In the new dim-by-percent mode, the screen will be dimmed to 50% of the plugged-
 
 ## To install from git
     git clone git://github.com/nailfarmer/gnome-shell-dim-on-battery-extension.git
-    cd gnome-shell-dim-pn-battery-extension
+    cd gnome-shell-dim-on-battery-extension
     cp -r dim-on-battery@nailfarmer.nailfarmer.com ~/.local/share/gnome-shell/extensions
