@@ -28,7 +28,34 @@ const DimmingPrefsWidget = new GObject.Class({
             this.append(mainContainer);
         }
 
+        this._legacyToggleSwitch = builder.get_object("legacyToggle");
+        this._dimByValueFrame = builder.get_object("dimByValueFrame");
+        this._dimByPercentFrame = builder.get_object("dimByPercentFrame");
+        this._legacyToggleSwitch.connect('state-set', Lang.bind(this, this._onLegacyToggleSwitch));
+    
+        if (this._settings.LEGACY_MODE.get() === true ) {
+            this._legacyToggleSwitch.set_active(true);
+            this._dimByValueFrame.set_sensitive(true);
+            this._dimByPercentFrame.set_sensitive(false);
+        } else {
+            this._legacyToggleSwitch.set_active(false);
+            this._dimByValueFrame.set_sensitive(false);
+            this._dimByPercentFrame.set_sensitive(true);
+        }
+    },
 
+    _onLegacyToggleSwitch: function(toggle, state) {
+        var oldval = this._settings.LEGACY_MODE.get();
+        if (state != this._settings.LEGACY_MODE.get()) {
+            this._settings.LEGACY_MODE.set(state);
+            if ( state === true ) {
+                this._dimByValueFrame.set_sensitive(true);
+                this._dimByPercentFrame.set_sensitive(false);
+            } else {
+                this._dimByValueFrame.set_sensitive(false);
+                this._dimByPercentFrame.set_sensitive(true);
+            }
+        }
     },
 });
 
