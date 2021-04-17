@@ -29,10 +29,21 @@ const DimmingPrefsWidget = new GObject.Class({
         }
 
         this._legacyToggleSwitch = builder.get_object("legacyToggle");
+        this._acValue = builder.get_object("acValue");
+        this._batteryValue = builder.get_object("batteryValue");
+        this._percentDimValue = builder.get_object("percentDimValue");
         this._dimByValueFrame = builder.get_object("dimByValueFrame");
         this._dimByPercentFrame = builder.get_object("dimByPercentFrame");
+
+        this._acValue.set_value(this._settings.AC_BRIGHTNESS.get());
+        this._batteryValue.set_value(this._settings.BATTERY_BRIGHTNESS.get());
+        this._percentDimValue.set_value(this._settings.PERCENTAGE_DIM.get());
+
         this._legacyToggleSwitch.connect('state-set', Lang.bind(this, this._onLegacyToggleSwitch));
-    
+        this._acValue.connect('value-changed', Lang.bind(this, this._onACValueChange));
+        this._batteryValue.connect('value-changed', Lang.bind(this, this._onBatteryValueChange));
+        this._percentDimValue.connect('value-changed', Lang.bind(this, this._onPercentDimChange));
+
         if (this._settings.LEGACY_MODE.get() === true ) {
             this._legacyToggleSwitch.set_active(true);
             this._dimByValueFrame.set_sensitive(true);
@@ -56,6 +67,31 @@ const DimmingPrefsWidget = new GObject.Class({
                 this._dimByPercentFrame.set_sensitive(true);
             }
         }
+    },
+
+    _onBatteryValueChange: function(spin_button) {
+        if (spin_button.get_value() != this._settings.BATTERY_BRIGHTNESS.get()) {
+            this._settings.BATTERY_BRIGHTNESS.set(spin_button.get_value());
+        }
+    },
+
+    _onACValueChange: function(spin_button) {
+        if (spin_button.get_value() != this._settings.AC_BRIGHTNESS.get()) {
+            this._settings.AC_BRIGHTNESS.set(spin_button.get_value());
+        }
+    },
+
+    _onPercentDimChange: function(spin_button) {
+        if (spin_button.get_value() != this._settings.PERCENTAGE_DIM.get()) {
+            this._settings.PERCENTAGE_DIM.set(spin_button.get_value());
+        }
+    },
+
+    destroy: function() {
+        this._legacyToggleSwitch.disconnect();
+        this._acValue.disconnect();
+        this._batteryValue.disconnect();
+        this._percentDimValue.disconnect();
     },
 });
 
