@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <object class="GtkAdjustment" id="batteryValueLimits">
+        <property name="upper">100</property>
+        <property name="value">20</property>
+        <property name="step-increment">1</property>
+        <property name="page-increment">10</property>
+    </object>
+    <object class="GtkAdjustment" id="acValueLimits">
+        <property name="upper">100</property>
+        <property name="value">80</property>
+        <property name="step-increment">1</property>
+        <property name="page-increment">10</property>
+    </object>
+    <object class="GtkAdjustment" id="percentValueLimits">
+        <property name="upper">100</property>
+        <property name="value">30</property>
+        <property name="step-increment">1</property>
+        <property name="page-increment">10</property>
+    </object>
+    <object class="GtkBox" id="mainContainer">
+        <property name="orientation">vertical</property>
+        <property name="spacing">10</property>
+        <property name="margin-start">10</property>
+        <property name="margin-end">10</property>
+        <property name="margin-top">10</property>
+        <property name="margin-bottom">10</property>
+        <child>
+            <object class="GtkBox" id="legacyToggleContainer">
+                <property name="orientation">horizontal</property>
+                <property name="spacing">10</property>
+                <child>
+                    <object class="GtkSwitch" id="legacyToggle">
+                        <property name="active">false</property>
+                    </object>
+                </child> 
+                <child> 
+                    <object class="GtkLabel" id="legacyToggleLabel">
+                        <property name="label" translatable="yes">Use legacy dim-by-value behaviour</property>
+                    </object>
+                </child>
+            </object>
+        </child>
+
+        <child>
+            <object class="GtkFrame" id="dimByValueFrame">
+                <property name="label" translatable="yes">Dim by value settings</property>
+                <child>
+                    <object class="GtkListBox" id="dimByValueBox">
+                        <property name="can-focus">0</property>
+                        <property name="selection-mode">none</property>
+                        <child>
+                            <object class="GtkListBoxRow">
+                                <child>
+                                    <object class="GtkBox">
+                                        <property name="margin-top">3</property>
+                                        <property name="margin-bottom">3</property>
+                                        <property name="margin-start">6</property>
+                                        <property name="margin-end">6</property>
+                                        <child>
+                                            <object class="GtkLabel">
+                                                <property name="label" translatable="yes">Screen brightness when on battery power</property>
+                                                <property name="hexpand">1</property>
+                                                <property name="halign">start</property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkSpinButton" id="batteryValue">
+                                                <property name="adjustment">batteryValueLimits</property>
+                                                <property name="halign">end</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+
+                        <child>
+                            <object class="GtkListBoxRow">
+                                <child>
+                                    <object class="GtkBox">
+                                        <property name="margin-top">3</property>
+                                        <property name="margin-bottom">3</property>
+                                        <property name="margin-start">6</property>
+                                        <property name="margin-end">6</property>
+                                        <child>
+                                            <object class="GtkLabel" id="acLabel">
+                                                <property name="label" translatable="yes">Screen brightness when on AC power</property>
+                                                <property name="hexpand">1</property>
+                                                <property name="halign">start</property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkSpinButton" id="acValue">
+                                                <property name="adjustment">acValueLimits</property>
+                                                <property name="halign">end</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+           </object>
+       </child>
+
+       <child>
+            <object class="GtkFrame" id="dimByPercentFrame">
+                <property name="label" translatable="yes">Dim by percent settings</property>
+                <property name="can-focus">0</property>
+                <child>
+                    <object class="GtkListBox" id="dimByPercentBox">
+                        <property name="can-focus">0</property>
+                        <property name="selection-mode">none</property>
+                        <child>
+                            <object class="GtkListBoxRow" id="percentDimContainer">
+                                <child>
+                                    <object class="GtkBox">
+                                        <property name="margin-top">3</property>
+                                        <property name="margin-bottom">3</property>
+                                        <property name="margin-start">6</property>
+                                        <property name="margin-end">6</property>
+                                        <child>
+                                            <object class="GtkLabel" id="percentDimLabel">
+                                                <property name="label" translatable="yes">Percent to dim display on battery power</property>
+                                                <property name="hexpand">1</property>
+                                                <property name="halign">start</property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkSpinButton" id="percentDimValue">
+                                                <property name="adjustment">percentValueLimits</property>
+                                                <property name="halign">end</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </object>
+</interface>
