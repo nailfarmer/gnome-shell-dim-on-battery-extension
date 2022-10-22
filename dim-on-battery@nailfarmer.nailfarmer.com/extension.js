@@ -84,7 +84,13 @@ BrightnessManager.prototype = {
        this._legacyMode = this._settings.LEGACY_MODE.get(DEFAULT_USE_LEGACY_MODE);
 
        this._screenProxyWrapper = Gio.DBusProxy.makeProxyWrapper(ScreenIface);
-       this._uPowerProxy = Main.panel.statusArea["aggregateMenu"]._power._proxy;
+
+       const shellVersion = Config.PACKAGE_VERSION;
+       if (shellVersion => '43') {
+           this._uPowerProxy = Main.panel.statusArea.quickSettings._system._systemItem._powerToggle._proxy;
+       } else {
+           this._uPowerProxy = Main.panel.statusArea["aggregateMenu"]._power._proxy;
+       }
 
        this._uPowerSignal = this._uPowerProxy.connect('g-properties-changed', Lang.bind(this, this._onPowerChange));
 
