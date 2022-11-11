@@ -20,6 +20,7 @@
 
 // Author: nailfarmer
 
+const GLib = imports.gi.GLib;
 const Lang = imports.lang;
 const Signals = imports.signals;
 const Mainloop = imports.mainloop;
@@ -87,7 +88,7 @@ BrightnessManager.prototype = {
 
        new this._screenProxyWrapper(Gio.DBus.session, BUS_NAME, OBJECT_PATH, Lang.bind(this, this.initBrightnessProxy));
 
-       Mainloop.timeout_add_seconds(1, Lang.bind(this, this.initBrightness) );
+       this._sourceId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 3, this.initBrightness.bind(this));
    },
 
    initBrightnessProxy: function(proxy) {
@@ -105,19 +106,22 @@ BrightnessManager.prototype = {
     * 
     */
    initBrightness: function() {
-       if ( this._brightnessLoaded ) return false;
+       if ( this._brightnessLoaded ) {
+           this._sourceId = 0;
+           return GLib.SOURCE_REMOVE;
+       }
        if ( null == this._brightnessProxy  ) {
            write_log('warning, brightness proxy not yet loaded, proxy value is ' + this._brightnessProxy);
-           return true;
+           return GLib.SOURCE_CONTINUE;
        } 
        if ( null == this._brightnessProxy.Brightness || isNaN(this._brightnessProxy.Brightness) ) {
            write_log('warning, brightness state not yet loaded, proxy value is ' + this._brightnessProxy.Brightness);
-           return true;
+           return GLib.SOURCE_CONTINUE;
        }
        if ( null == this._uPowerProxy.State ) {
            write_log('warning, uPowerProxy state not yet loaded, proxy value is ' + this._uPowerProxy);
            write_log('power device type is ' + this._uPowerProxy.Type);
-           return true;
+           return GLib.SOURCE_CONTINUE;
        }
 
        write_log('at init, brightness proxy is' + this._brightnessProxy);
@@ -158,7 +162,8 @@ BrightnessManager.prototype = {
            }
 
        }
-       return false;
+       this._sourceId = 0;
+       return GLib.SOURCE_REMOVE;
     },
 
     isDischargeState: function(state) {
@@ -407,10 +412,23 @@ BrightnessManager.prototype = {
    destroy: function() {
        this.saveBrightness();
        this._uPowerProxy.disconnect(this._uPowerSignal);
-       this._settings.settings.disconnect(this._batteryBrightnessChangedSignal);
-       this._settings.settings.disconnect(this._acBrightnessChangedSignal);
-       this._settings.settings.disconnect(this._legacyModeChangedSignal);
-       this._settings.settings.disconnect(this._percentageDimChangedSignal);
+
+       if ( this._batteryBrightnessChangedSignal ) {
+           this._settings.settings.disconnect(this._batteryBrightnessChangedSignal);
+       }
+       if ( this._acBrightnessChangedSignal ) {
+           this._settings.settings.disconnect(this._acBrightnessChangedSignal);
+       }
+       if ( this._legacyModeChangedSignal ) {
+           this._settings.settings.disconnect(this._legacyModeChangedSignal);
+       }
+       if ( this._percentageDimChangedSignal ) {
+           this._settings.settings.disconnect(this._percentageDimChangedSignal);
+       }
+ 
+       if ( this._sourceId ) {
+           GLib.Source.remove(this._sourceId);
+       }
    }
 }
 
