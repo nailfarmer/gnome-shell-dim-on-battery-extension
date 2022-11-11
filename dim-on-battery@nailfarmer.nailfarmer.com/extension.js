@@ -43,10 +43,7 @@ const BRIGHTNESS_THRESHOLD = 3;
 const Config = imports.misc.config;
 
 
-let BUS_NAME = 'org.gnome.SettingsDaemon';
-if (parseFloat(Config.PACKAGE_VERSION) > 3.22) {
-    BUS_NAME = 'org.gnome.SettingsDaemon.Power';
-}
+let BUS_NAME = 'org.gnome.SettingsDaemon.Power';
 
 const OBJECT_PATH = '/org/gnome/SettingsDaemon/Power';
 
