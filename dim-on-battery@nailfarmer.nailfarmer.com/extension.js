@@ -21,7 +21,6 @@
 // Author: nailfarmer
 
 const GLib = imports.gi.GLib;
-const Lang = imports.lang;
 const Signals = imports.signals;
 const Mainloop = imports.mainloop;
 const Gio = imports.gi.Gio;
@@ -84,10 +83,8 @@ BrightnessManager.prototype = {
        this._screenProxyWrapper = Gio.DBusProxy.makeProxyWrapper(ScreenIface);
        this._uPowerProxy = Main.panel.statusArea["aggregateMenu"]._power._proxy;
 
-       this._uPowerSignal = this._uPowerProxy.connect('g-properties-changed', Lang.bind(this, this._onPowerChange));
-
-       new this._screenProxyWrapper(Gio.DBus.session, BUS_NAME, OBJECT_PATH, Lang.bind(this, this.initBrightnessProxy));
-
+       this._uPowerSignal = this._uPowerProxy.connect('g-properties-changed', this._onPowerChange.bind(this));
+       new this._screenProxyWrapper(Gio.DBus.session, BUS_NAME, OBJECT_PATH, this.initBrightnessProxy.bind(this));
        this._sourceId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 3, this.initBrightness.bind(this));
    },
 
@@ -127,10 +124,10 @@ BrightnessManager.prototype = {
        write_log('at init, brightness proxy is' + this._brightnessProxy);
        write_log('at init, current brightness level is ' + this._brightnessProxy.Brightness);
 
-       this._acBrightnessChangedSignal = this._settings.settings.connect('changed::ac-brightness', Lang.bind(this, this.loadACBrightness));
-       this._batteryBrightnessChangedSignal = this._settings.settings.connect('changed::battery-brightness', Lang.bind(this, this.loadBatteryBrightness));
-       this._legacyModeChangedSignal = this._settings.settings.connect('changed::legacy-mode', Lang.bind(this, this.toggleLegacyMode));
-       this._percentageDimChangedSignal = this._settings.settings.connect('changed::percentage-dim', Lang.bind(this, this.percentDimChanged));
+       this._acBrightnessChangedSignal = this._settings.settings.connect('changed::ac-brightness', this.loadACBrightness.bind(this));
+       this._batteryBrightnessChangedSignal = this._settings.settings.connect('changed::battery-brightness', this.loadBatteryBrightness.bind(this));
+       this._legacyModeChangedSignal = this._settings.settings.connect('changed::legacy-mode', this.toggleLegacyMode.bind(this));
+       this._percentageDimChangedSignal = this._settings.settings.connect('changed::percentage-dim', this.percentDimChanged.bind(this));
 
        if ( this._legacyMode ) {
            this._lastStatus = this._uPowerProxy.State;
