@@ -24,7 +24,6 @@ const GLib = imports.gi.GLib;
 const Signals = imports.signals;
 const Mainloop = imports.mainloop;
 const Gio = imports.gi.Gio;
-const UPower = imports.gi.UPowerGlib;
 const St = imports.gi.St;
 const Main = imports.ui.main;
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
