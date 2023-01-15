@@ -41,7 +41,11 @@ const DEFAULT_PREVIOUS_STATE = -1;
 const BRIGHTNESS_THRESHOLD = 3;
 
 const Config = imports.misc.config;
+const shellVersion = parseFloat(Config.PACKAGE_VERSION);
 
+const UPower = shellVersion >= 43
+    ? imports.gi.UPowerGlib
+    : imports.ui.status.power.UPower;
 
 let BUS_NAME = 'org.gnome.SettingsDaemon.Power';
 
@@ -52,7 +56,7 @@ const ScreenIface = '<node>\
     <property type="i" name="Brightness" access="readwrite">\
     </property>\
   </interface>\
-</node>'; 
+</node>';
 
 
 
@@ -75,13 +79,18 @@ BrightnessManager.prototype = {
        this.fixBadDconfSettings();
 
        this._batteryBrightness = this._settings.BATTERY_BRIGHTNESS.get(DEFAULT_BRIGHTNESS_BATTERY);
-       this._acBrightness = this._settings.AC_BRIGHTNESS.get(DEFAULT_BRIGHTNESS_AC); 
+       this._acBrightness = this._settings.AC_BRIGHTNESS.get(DEFAULT_BRIGHTNESS_AC);
        this._percentageDim = this._settings.PERCENTAGE_DIM.get(DEFAULT_PERCENT_DIM);
        this._previousState = this._settings.PREVIOUS_STATE.get(DEFAULT_PREVIOUS_STATE);
        this._legacyMode = this._settings.LEGACY_MODE.get(DEFAULT_USE_LEGACY_MODE);
 
        this._screenProxyWrapper = Gio.DBusProxy.makeProxyWrapper(ScreenIface);
-       this._uPowerProxy = Main.panel.statusArea["aggregateMenu"]._power._proxy;
+
+       if (shellVersion >= 43) {
+           this._uPowerProxy = Main.panel.statusArea.quickSettings._system._systemItem._powerToggle._proxy;
+       } else {
+           this._uPowerProxy = Main.panel.statusArea["aggregateMenu"]._power._proxy;
+       }
 
        this._uPowerSignal = this._uPowerProxy.connect('g-properties-changed', this._onPowerChange.bind(this));
        new this._screenProxyWrapper(Gio.DBus.session, BUS_NAME, OBJECT_PATH, this.initBrightnessProxy.bind(this));
@@ -90,17 +99,17 @@ BrightnessManager.prototype = {
 
    initBrightnessProxy: function(proxy) {
        this._brightnessProxy = proxy;
-       if ( ! this._brightnessLoaded )  this.initBrightness(); 
+       if ( ! this._brightnessLoaded )  this.initBrightness();
    },
 
-   /* 
-    * We can't initialize brightness until both dbus proxies have been 
+   /*
+    * We can't initialize brightness until both dbus proxies have been
     * initialized themselves and have valid properties available. Ideally, this
     * should be true in initBrightnessProxy, but in practice, neither the
     * brightness nor upower properties are always immediately available. Since
     * I can't find any relevent dbus signals to listen for, that means we have to
     * poll until they are accessible.
-    * 
+    *
     */
    initBrightness: function() {
        if ( this._brightnessLoaded ) {
@@ -196,15 +205,15 @@ BrightnessManager.prototype = {
 
        // Save the ac brightness levels if there's been a significant change
        // and our current value is valid
-       if ( currentBrightness > 1 && ! isNaN(currentBrightness) && 
+       if ( currentBrightness > 1 && ! isNaN(currentBrightness) &&
             Math.abs(currentBrightness - this._acBrightness) > 1 ) {
-       
+
            write_log('dc brightness is valid, saving settings in dconf');
            this._acBrightness = currentBrightness;
            this._settings.AC_BRIGHTNESS.set(this._acBrightness);
        }
 
-       // Set the brightness to battery levels if there's been a 
+       // Set the brightness to battery levels if there's been a
        // significant change, or if the current value is in doubt
        if ( currentBrightness < 1 || isNaN(currentBrightness) ||
             Math.abs(currentBrightness - this._batteryBrightness) > 1 ) {
@@ -238,7 +247,7 @@ BrightnessManager.prototype = {
        if ( this._legacyMode ) this.setLegacyACBrightness();
        else this.setPercentACBrightness();
    },
-   
+
    setLegacyACBrightness: function() {
        if ( ! this._brightnessLoaded ) return;
        // this will cast to 0 if DBUS times out
@@ -246,7 +255,7 @@ BrightnessManager.prototype = {
 
        // Save the battery brightness levels if there's been a significant
        // change and our current value is valid
-       if ( currentBrightness > 1 && ! isNaN(currentBrightness) && 
+       if ( currentBrightness > 1 && ! isNaN(currentBrightness) &&
             Math.abs(currentBrightness - this._batteryBrightness) > 1 ) {
            write_log('ac brightness is valid, saving settings in dconf');
            write_log('new dc brightness value is ' + currentBrightness);
@@ -256,7 +265,7 @@ BrightnessManager.prototype = {
 
        // Set the brightness to ac levels if there's been a significant change
        // or if our current brightness value is in doubt
-       if ( currentBrightness < 1 || isNaN(currentBrightness) || 
+       if ( currentBrightness < 1 || isNaN(currentBrightness) ||
             Math.abs(currentBrightness - this._acBrightness) > 1) {
            write_log('setting current brightness to dconf settings of ' + this._acBrightness);
            this._brightnessProxy.Brightness = this._acBrightness;
@@ -341,7 +350,7 @@ BrightnessManager.prototype = {
    },
 
    /*
-    * Load AC settings from dconf, and update screen brightness if 
+    * Load AC settings from dconf, and update screen brightness if
     * we're on AC.
     *
     */
@@ -352,7 +361,7 @@ BrightnessManager.prototype = {
        if ( dconfBrightness > 1 && ! isNaN(dconfBrightness) ) {
            write_log('ac brightness loaded from dconf');
            this._acBrightness = dconfBrightness;
-       } 
+       }
 
        if ( this._uPowerProxy.State != UPower.DeviceState.DISCHARGING) {
            write_log('device proxy is ' + this._uPowerProxy);
@@ -375,7 +384,7 @@ BrightnessManager.prototype = {
        if ( dconfBrightness > 1 && ! isNaN(dconfBrightness) ) {
            write_log('battery brightness loaded from dconf ' + dconfBrightness);
            this._batteryBrightness = dconfBrightness;
-       } 
+       }
 
        if ( this._uPowerProxy.State == UPower.DeviceState.DISCHARGING) {
            write_log('device is discharging, updating brightness to ' + this._batteryBrightness);
@@ -432,7 +441,7 @@ BrightnessManager.prototype = {
 function write_log(message) {
    if ( true == VERBOSE_LOGS ) {
        global.log('[dim-on-battery] ' + message);
-   } 
+   }
 }
 
 
